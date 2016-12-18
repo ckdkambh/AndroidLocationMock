@@ -44,13 +44,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="设置经纬度" />
-    
+
     <TextView
         android:id="@+id/txt_id_stepLength"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="" />
-    
+
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
@@ -68,5 +68,23 @@
             android:layout_height="wrap_content"
             android:text="减少步长" />
     </LinearLayout>
+
+    <Button
+        android:id="@+id/btn_id_storeCurLocate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="收藏当前地点" />
+    
+    <Button
+        android:id="@+id/btn_id_chooseStoredLocation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="选择收藏地点" />
+    
+    <Button
+        android:id="@+id/btn_id_emptyStoredLocation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="清空收藏列表" />
 
 </LinearLayout>

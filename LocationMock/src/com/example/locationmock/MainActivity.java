@@ -1,33 +1,35 @@
 package com.example.locationmock;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.ContentResolver;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
-import android.content.Intent;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
 import android.location.LocationProvider;
-
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.os.Vibrator;
-import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
 import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
+import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.widget.Button;
 import android.widget.EditText;
@@ -45,6 +47,9 @@ public class MainActivity extends Activity {
 	private Button mSetBtn;
 	private Button mUpBtn;
 	private Button mDownBtn;
+	private Button mStoreCurLocBtn;
+	private Button mGetStoreLocBtn;
+	private Button mEmptyStoreLocBtn;
 	private EditText mLongitudeEdit;
 	private EditText mLatitudeEdit;
 	private TextView mStepTxt;
@@ -55,6 +60,9 @@ public class MainActivity extends Activity {
 	private double stepOnce = 0.0000005;
 	private boolean isStart = false;
 	private double curBearing = 180;
+	private List<String> dataNameList = new ArrayList<String>();
+	private SharedPreferences preferences;
+	private Editor editor;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -70,7 +78,18 @@ public class MainActivity extends Activity {
 		mUpBtn = (Button) findViewById(R.id.btn_id_upstep);
 		mDownBtn = (Button) findViewById(R.id.btn_id_downstep);
 		mStepTxt = (TextView) findViewById(R.id.txt_id_stepLength);
+		mStoreCurLocBtn = (Button) findViewById(R.id.btn_id_storeCurLocate);
+		mGetStoreLocBtn = (Button) findViewById(R.id.btn_id_chooseStoredLocation);
+		mEmptyStoreLocBtn = (Button) findViewById(R.id.btn_id_emptyStoredLocation);
 		
+		preferences = this.getSharedPreferences("t1", Context.MODE_PRIVATE);
+		editor = preferences.edit();
+		readNameList();
+		if (dataNameList.contains("lastLocation")) {
+			mLongitude = preferences.getFloat("lastLocationLo", 0);
+			mLatitude = preferences.getFloat("lastLocationLa", 0);
+		}
+
 		DisplayMetrics dm2 = getResources().getDisplayMetrics();
 
 		GlobalValue.sWinH = dm2.heightPixels;
@@ -105,17 +124,6 @@ public class MainActivity extends Activity {
 			Log.e(TAG, "error");
 		}
 
-		// mStartBtn.setOnClickListener(new View.OnClickListener() {
-		//
-		// @Override
-		// public void onClick(View v) {
-		// // TODO Auto-generated method stub
-		// Log.i(TAG, "mStartBtn onClick");
-		// new Thread(new RunnableMockLocation()).start();
-		// mStartBtn.setClickable(false);
-		//
-		// }
-		// });
 		createFloatView();
 		updateLocation();
 		mSetBtn.setOnClickListener(new View.OnClickListener() {
@@ -137,39 +145,151 @@ public class MainActivity extends Activity {
 				}
 			}
 		});
-		
+		mStepTxt.setText("当前步长:" + (int) (stepLength / stepOnce));
 		mUpBtn.setOnClickListener(new View.OnClickListener() {
 
 			@Override
 			public void onClick(View v) {
 				// TODO Auto-generated method stub
 				stepLength += stepOnce;
-				mStepTxt.setText("当前步长:"+(int)(stepLength/stepOnce));
+				mStepTxt.setText("当前步长:" + (int) (stepLength / stepOnce));
 			}
 		});
-		
+
 		mDownBtn.setOnClickListener(new View.OnClickListener() {
 
 			@Override
 			public void onClick(View v) {
 				// TODO Auto-generated method stub
 				stepLength -= stepOnce;
-				stepLength = stepLength < stepOnce ? stepOnce :stepLength;
-				mStepTxt.setText("当前步长:"+(int)(stepLength/stepOnce));
+				stepLength = stepLength < stepOnce ? stepOnce : stepLength;
+				mStepTxt.setText("当前步长:" + (int) (stepLength / stepOnce));
 			}
 		});
+
+		final Context ctxt = this;
+
+		mStoreCurLocBtn.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				final EditText mNameEdit = new EditText(ctxt);
+				Dialog alertDialog = new AlertDialog.Builder(ctxt)
+						.setTitle("输入收藏当前地点名称")
+						.setView(mNameEdit)
+						.setIcon(R.drawable.ic_launcher)
+						.setPositiveButton("确定",
+								new DialogInterface.OnClickListener() {
+
+									@Override
+									public void onClick(DialogInterface dialog,
+											int which) {
+										// TODO Auto-generated method stub
+										storeCurLocat(mNameEdit.getText()
+												.toString());
+										storeLastLocat();
+										wirteNameList();
+									}
+								})
+						.setNegativeButton("取消",
+								new DialogInterface.OnClickListener() {
+
+									@Override
+									public void onClick(DialogInterface dialog,
+											int which) {
+										// TODO Auto-generated method stub
+									}
+								}).create();
+				alertDialog.show();
+			}
+		});
+
+		mGetStoreLocBtn.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				final String[] strList = new String[dataNameList.size()];
+
+				for (int i = 0; i < dataNameList.size(); i++) {
+					strList[i] = dataNameList.get(i);
+				}
+
+				Dialog alertDialog = new AlertDialog.Builder(ctxt)
+						.setTitle("选择收藏地点")
+						.setIcon(R.drawable.ic_launcher)
+						.setSingleChoiceItems(strList, 0,
+								new DialogInterface.OnClickListener() {
+									public void onClick(DialogInterface dialog,
+											int which) {
+										Log.d(TAG, "选择了"+which);
+										mLongitude = preferences.getFloat(strList[which]+"Lo", 0);
+										mLatitude = preferences.getFloat(strList[which]+"La", 0);
+										Log.d(TAG, "mLongitude:"+mLongitude+"mLatitude:"+mLatitude);
+									}
+								})
+						.setNegativeButton("取消",
+								new DialogInterface.OnClickListener() {
+
+									@Override
+									public void onClick(DialogInterface dialog,
+											int which) {
+										// TODO Auto-generated method stub
+									}
+								}).create();
+				alertDialog.show();
+			}
+		});
+
+		mEmptyStoreLocBtn.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				Dialog alertDialog = new AlertDialog.Builder(ctxt)
+						.setTitle("提示")
+						.setMessage("是否清空")
+						.setIcon(R.drawable.ic_launcher)
+						.setPositiveButton("确定",
+								new DialogInterface.OnClickListener() {
+
+									@Override
+									public void onClick(DialogInterface dialog,
+											int which) {
+										// TODO Auto-generated method stub
+										dataNameList.clear();
+										storeLastLocat();
+										wirteNameList();
+									}
+								})
+						.setNegativeButton("取消",
+								new DialogInterface.OnClickListener() {
+
+									@Override
+									public void onClick(DialogInterface dialog,
+											int which) {
+										// TODO Auto-generated method stub
+									}
+								}).create();
+				alertDialog.show();
+			}
+		});
+		
+		new Thread(new RunnableMockLocation()).start();
 	}
 
 	private class RunnableMockLocation implements Runnable {
 
-		@SuppressLint("NewApi") @Override
+		@SuppressLint("NewApi")
+		@Override
 		public void run() {
 			while (true) {
 				try {
 					Thread.sleep(50);
 
-					if (isStart == false)
-						break;
+					// if (isStart == false)
+					// break;
 					updateLocation();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
@@ -218,7 +338,8 @@ public class MainActivity extends Activity {
 		// 设置悬浮窗口长宽数据
 		// wmParams.width = WindowManager.LayoutParams.WRAP_CONTENT;
 		// wmParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
-		int sqrLength = Math.min((int)GlobalValue.sWinH / 15, (int)GlobalValue.sWinH / 15);
+		int sqrLength = Math.min((int) GlobalValue.sWinH / 15,
+				(int) GlobalValue.sWinH / 15);
 		wmParams.width = sqrLength;
 		wmParams.height = sqrLength;
 
@@ -272,7 +393,6 @@ public class MainActivity extends Activity {
 					break;
 				case MotionEvent.ACTION_DOWN:
 					isStart = true;
-					new Thread(new RunnableMockLocation()).start();
 					mFloatLayout.setBackgroundColor(Color.WHITE);
 					break;
 				default:
@@ -292,9 +412,9 @@ public class MainActivity extends Activity {
 			}
 		});
 	}
-	
-	@SuppressLint("NewApi") private void updateLocation()
-	{
+
+	@SuppressLint("NewApi")
+	private void updateLocation() {
 		try {
 			// 模拟位置（addTestProvider成功的前提下）
 			String providerStr = LocationManager.GPS_PROVIDER;
@@ -310,12 +430,62 @@ public class MainActivity extends Activity {
 				mockLocation.setElapsedRealtimeNanos(SystemClock
 						.elapsedRealtimeNanos());
 			}
-			mLocationManager.setTestProviderLocation(providerStr,
-					mockLocation);
+			mLocationManager.setTestProviderLocation(providerStr, mockLocation);
 		} catch (Exception e) {
 			// 防止用户在软件运行过程中关闭模拟位置或选择其他应用
 			stopMockLocation();
 		}
 	}
 
+	private void wirteNameList() {
+		editor.putInt("dataListNameLength", dataNameList.size());
+
+		Log.d(TAG, "wirteNameList dataNameList.size():"+dataNameList.size());
+		
+		for (int i = 0; i < dataNameList.size(); i++) {
+			editor.putString("dataListName" + i, dataNameList.get(i));
+			Log.d(TAG, "wirteNameList editor.putString:"+"dataListName" + i+","+dataNameList.get(i));
+		}
+		editor.commit();
+	}
+
+	private void readNameList() {
+		int length = 0;
+		length = preferences.getInt("dataListNameLength", 0);
+		Log.d(TAG, "readNameList length:"+length);
+		
+		for (int i = 0; i < length; i++) {
+			dataNameList.add(preferences.getString("dataListName" + i, "none"));
+			Log.d(TAG, "readNameList "+"dataListName" + i+","+dataNameList.get(i));
+		}
+		
+	}
+
+	protected void onDestroy() {
+		super.onDestroy();
+		storeLastLocat();
+		wirteNameList();
+	}
+
+	private void storeCurLocat(String name) {
+		if (dataNameList.contains(name)) {
+			Toast.makeText(this, "名称重复", Toast.LENGTH_SHORT).show();
+			Log.d(TAG, "名称重复");
+			return;
+		}
+		editor.putFloat(name + "Lo", (float) mLongitude);
+		editor.putFloat(name + "La", (float) mLatitude);
+		dataNameList.add(name);
+		Log.d(TAG, "storeCurLocat,name:"+name+",mLongitude:"+mLongitude+",mLatitude"+mLatitude);
+		editor.commit();
+	}
+	
+	private void storeLastLocat() {
+		if (!dataNameList.contains("lastLocation")) {
+			dataNameList.add("lastLocation");
+		}
+		editor.putFloat("lastLocationLo", (float) mLongitude);
+		editor.putFloat("lastLocationLa", (float) mLatitude);
+		editor.commit();
+	}
 }
