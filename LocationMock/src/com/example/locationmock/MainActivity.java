@@ -366,7 +366,8 @@ public class MainActivity extends Activity {
 				switch (event.getActionMasked()) {
 				case MotionEvent.ACTION_UP:
 					isStart = false;
-					mFloatLayout.setBackgroundColor(Color.BLACK);
+					//mFloatLayout.setBackgroundColor(0xFF000000);
+					mFloatLayout.setVisibility(View.VISIBLE);
 					break;
 				case MotionEvent.ACTION_MOVE:
 					double dy = event.getRawY() - GlobalValue.sWinH / 2;
@@ -393,7 +394,8 @@ public class MainActivity extends Activity {
 					break;
 				case MotionEvent.ACTION_DOWN:
 					isStart = true;
-					mFloatLayout.setBackgroundColor(Color.WHITE);
+					//mFloatLayout.setBackgroundColor(0xFFFFFFFF);
+					mFloatLayout.setVisibility(View.INVISIBLE);
 					break;
 				default:
 					break;
