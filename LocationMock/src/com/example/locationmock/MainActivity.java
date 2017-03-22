@@ -50,6 +50,7 @@ public class MainActivity extends Activity {
 	private Button mStoreCurLocBtn;
 	private Button mGetStoreLocBtn;
 	private Button mEmptyStoreLocBtn;
+	private Button mFloatWinSwitchBtn;
 	private EditText mLongitudeEdit;
 	private EditText mLatitudeEdit;
 	private TextView mStepTxt;
@@ -59,6 +60,7 @@ public class MainActivity extends Activity {
 	private double stepLength = 0.000007;
 	private double stepOnce = 0.0000005;
 	private boolean isStart = false;
+	private boolean isFloatWinEnable = true;
 	private double curBearing = 180;
 	private List<String> dataNameList = new ArrayList<String>();
 	private SharedPreferences preferences;
@@ -81,6 +83,7 @@ public class MainActivity extends Activity {
 		mStoreCurLocBtn = (Button) findViewById(R.id.btn_id_storeCurLocate);
 		mGetStoreLocBtn = (Button) findViewById(R.id.btn_id_chooseStoredLocation);
 		mEmptyStoreLocBtn = (Button) findViewById(R.id.btn_id_emptyStoredLocation);
+		mFloatWinSwitchBtn = (Button) findViewById(R.id.btn_id_floatWinSwitch);
 		
 		preferences = this.getSharedPreferences("t1", Context.MODE_PRIVATE);
 		editor = preferences.edit();
@@ -204,7 +207,26 @@ public class MainActivity extends Activity {
 				alertDialog.show();
 			}
 		});
+		mFloatWinSwitchBtn.setOnClickListener(new View.OnClickListener(){
 
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				if (isFloatWinEnable)
+				{
+					mFloatLayout.setVisibility(View.GONE);
+					isFloatWinEnable = false;
+					mFloatWinSwitchBtn.setText("开启浮动窗");
+				}
+				else
+				{
+					mFloatLayout.setVisibility(View.VISIBLE);
+					isFloatWinEnable = true;
+					mFloatWinSwitchBtn.setText("关闭浮动窗");
+				}
+			}
+			
+		});
 		mGetStoreLocBtn.setOnClickListener(new View.OnClickListener() {
 
 			@Override
