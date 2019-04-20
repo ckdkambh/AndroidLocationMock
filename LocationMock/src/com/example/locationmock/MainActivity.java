@@ -51,6 +51,9 @@ public class MainActivity extends Activity {
 	private Button mGetStoreLocBtn;
 	private Button mEmptyStoreLocBtn;
 	private Button mFloatWinSwitchBtn;
+	private Button mSetStartPointBtn;
+	private Button mSetEndPointBtn;
+	private Button mStartAutoWalkBtn;
 	private EditText mLongitudeEdit;
 	private EditText mLatitudeEdit;
 	private TextView mStepTxt;
@@ -61,6 +64,11 @@ public class MainActivity extends Activity {
 	private double stepOnce = 0.0000005;
 	private boolean isStart = false;
 	private boolean isFloatWinEnable = true;
+	private double mStartLongitude = 0.0;
+	private double mStartLatitude = 0.0;
+	private double mEndLongitude = 0.0;
+	private double mEndLatitude = 0.0;	
+	
 	private double curBearing = 180;
 	private List<String> dataNameList = new ArrayList<String>();
 	private SharedPreferences preferences;
@@ -84,6 +92,9 @@ public class MainActivity extends Activity {
 		mGetStoreLocBtn = (Button) findViewById(R.id.btn_id_chooseStoredLocation);
 		mEmptyStoreLocBtn = (Button) findViewById(R.id.btn_id_emptyStoredLocation);
 		mFloatWinSwitchBtn = (Button) findViewById(R.id.btn_id_floatWinSwitch);
+		mSetStartPointBtn = (Button) findViewById(R.id.btn_id_set_start_point);
+		mSetEndPointBtn = (Button) findViewById(R.id.btn_id_set_end_point);
+		mStartAutoWalkBtn = (Button) findViewById(R.id.btn_id_start_auto_walk);
 		
 		preferences = this.getSharedPreferences("t1", Context.MODE_PRIVATE);
 		editor = preferences.edit();
@@ -264,6 +275,15 @@ public class MainActivity extends Activity {
 			}
 		});
 
+		mSetStartPointBtn.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				
+			}
+		});		
+		
 		mEmptyStoreLocBtn.setOnClickListener(new View.OnClickListener() {
 
 			@Override
@@ -372,6 +392,7 @@ public class MainActivity extends Activity {
 					R.layout.cam_for_server, null);
 			// Ìí¼ÓmFloatLayout
 			mWindowManager.addView(mFloatLayout, wmParams);
+			Log.i(TAG, "mWindowManager addView done");
 		} catch (java.lang.RuntimeException e) {
 			return;
 		}

@@ -93,4 +93,22 @@
         android:layout_height="wrap_content"
         android:text="关闭浮动窗" />
 
+    <Button
+        android:id="@+id/btn_id_set_start_point"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="设置当前位置为起点" />
+    
+    <Button
+        android:id="@+id/btn_id_set_end_point"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="设置当前位置为终点" />
+    
+    <Button
+        android:id="@+id/btn_id_start_auto_walk"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="开始自动散步" />
+
 </LinearLayout>
