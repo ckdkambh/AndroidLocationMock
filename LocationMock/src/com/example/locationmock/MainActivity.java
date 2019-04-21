@@ -36,14 +36,16 @@ import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.example.locationmock.GlobalValue;
+
 
 public class MainActivity extends Activity {
 	private static final String TAG = "SetLocation";
 	private LocationManager mLocationManager;
 	private Context mContext;
 	private String mMockProviderName = LocationManager.GPS_PROVIDER;
-	private double mLongitude = 116.395636;
-	private double mLatitude = 39.929983;
+	private double mXpos = GlobalValue.defaultLongitude;
+	private double mYpos = GlobalValue.defaultLatitude;
 	private Button mSetBtn;
 	private Button mUpBtn;
 	private Button mDownBtn;
@@ -57,22 +59,26 @@ public class MainActivity extends Activity {
 	private EditText mLongitudeEdit;
 	private EditText mLatitudeEdit;
 	private TextView mStepTxt;
+	private TextView mStartPosition;
+	private TextView mEndPosition;
+	private TextView mCurPosition;
 	private RelativeLayout mFloatLayout;
 	private WindowManager.LayoutParams wmParams;
 	private WindowManager mWindowManager;
-	private double stepLength = 0.000007;
-	private double stepOnce = 0.0000005;
-	private boolean isStart = false;
+	private double stepLength = 0.00007;
+	private double stepOnce = 0.000005;
 	private boolean isFloatWinEnable = true;
-	private double mStartLongitude = 0.0;
-	private double mStartLatitude = 0.0;
-	private double mEndLongitude = 0.0;
-	private double mEndLatitude = 0.0;	
-	
+	private double mStartXpos = 0.0;
+	private double mStartYpos = 0.0;
+	private double mEndXpos = 0.0;
+	private double mEndYpos = 0.0;	
+	private boolean dirFromStartToEnd = false;
 	private double curBearing = 180;
 	private List<String> dataNameList = new ArrayList<String>();
 	private SharedPreferences preferences;
 	private Editor editor;
+	private boolean isAutoRun = false;
+	private int walkTick = 0;//移位许可，因为定时器过快，不能每个周期都进行位移
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +94,9 @@ public class MainActivity extends Activity {
 		mUpBtn = (Button) findViewById(R.id.btn_id_upstep);
 		mDownBtn = (Button) findViewById(R.id.btn_id_downstep);
 		mStepTxt = (TextView) findViewById(R.id.txt_id_stepLength);
+		mStartPosition = (TextView) findViewById(R.id.txt_id_start_position);
+		mEndPosition = (TextView) findViewById(R.id.txt_id_end_position);
+		mCurPosition = (TextView) findViewById(R.id.txt_id_cur_position);
 		mStoreCurLocBtn = (Button) findViewById(R.id.btn_id_storeCurLocate);
 		mGetStoreLocBtn = (Button) findViewById(R.id.btn_id_chooseStoredLocation);
 		mEmptyStoreLocBtn = (Button) findViewById(R.id.btn_id_emptyStoredLocation);
@@ -100,8 +109,8 @@ public class MainActivity extends Activity {
 		editor = preferences.edit();
 		readNameList();
 		if (dataNameList.contains("lastLocation")) {
-			mLongitude = preferences.getFloat("lastLocationLo", 0);
-			mLatitude = preferences.getFloat("lastLocationLa", 0);
+			mXpos = preferences.getFloat("lastLocationLo", 0);
+			mYpos = preferences.getFloat("lastLocationLa", 0);
 		}
 
 		DisplayMetrics dm2 = getResources().getDisplayMetrics();
@@ -147,12 +156,12 @@ public class MainActivity extends Activity {
 				// TODO Auto-generated method stub
 				Log.i(TAG, "mStartBtn onClick");
 				try {
-					mLongitude = Double.valueOf(mLongitudeEdit.getText()
+					mXpos = Double.valueOf(mLongitudeEdit.getText()
 							.toString());
-					mLatitude = Double.valueOf(mLatitudeEdit.getText()
+					mYpos = Double.valueOf(mLatitudeEdit.getText()
 							.toString());
 					Toast.makeText(getApplicationContext(),
-							"经度:" + mLongitude + ",维度:" + mLatitude,
+							"经度:" + mXpos + ",维度:" + mYpos,
 							Toast.LENGTH_SHORT).show();
 
 				} catch (NumberFormatException e) {
@@ -257,9 +266,9 @@ public class MainActivity extends Activity {
 									public void onClick(DialogInterface dialog,
 											int which) {
 										Log.d(TAG, "选择了"+which);
-										mLongitude = preferences.getFloat(strList[which]+"Lo", 0);
-										mLatitude = preferences.getFloat(strList[which]+"La", 0);
-										Log.d(TAG, "mLongitude:"+mLongitude+"mLatitude:"+mLatitude);
+										mXpos = preferences.getFloat(strList[which]+"Lo", 0);
+										mYpos = preferences.getFloat(strList[which]+"La", 0);
+										Log.d(TAG, "mXpos:"+mXpos+"mYpos:"+mYpos);
 									}
 								})
 						.setNegativeButton("取消",
@@ -280,9 +289,65 @@ public class MainActivity extends Activity {
 			@Override
 			public void onClick(View v) {
 				// TODO Auto-generated method stub
-				
+				mStartXpos = mXpos;
+				mStartYpos = mYpos;
+				mStartPosition.setText("记录起点经度:" + mStartXpos + ",维度:" + mStartYpos);
 			}
 		});		
+		
+		mSetEndPointBtn.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				mEndXpos = mXpos;
+				mEndYpos = mYpos;
+				mEndPosition.setText("记录终点经度:" + mEndXpos + ",维度:" + mEndYpos);
+			}
+		});			
+		
+		mStartAutoWalkBtn.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				// 参数检查
+				if (mStartYpos == 0.0 || mStartXpos == 0.0) {
+					Toast.makeText(getApplicationContext(),
+							"请正确设置起点位置",
+							Toast.LENGTH_SHORT).show();
+					isAutoRun = false;
+					return;
+				}
+				
+				if (mEndYpos == 0.0 || mEndXpos == 0.0) {
+					Toast.makeText(getApplicationContext(),
+							"请正确设置终点位置",
+							Toast.LENGTH_SHORT).show();
+					isAutoRun = false;
+					return;
+				}
+				
+				if (GlobalValue.compareDouble(mStartYpos, mEndYpos, stepLength/2) &&
+					GlobalValue.compareDouble(mStartXpos, mEndXpos, stepLength/2)) {
+					Toast.makeText(getApplicationContext(),
+							"起点终点太近请重新设置",
+							Toast.LENGTH_SHORT).show();
+					isAutoRun = false;
+					return;
+				}
+				
+				if (isAutoRun == false) {
+					isAutoRun = true;
+					walkTick = 20;// 开始时添加令牌放呆
+					mStartAutoWalkBtn.setText("关闭自动行走");
+				} else {
+					isAutoRun = false;
+					mStartAutoWalkBtn.setText("开启自动行走");
+				}			
+				
+			}
+		});
 		
 		mEmptyStoreLocBtn.setOnClickListener(new View.OnClickListener() {
 
@@ -321,6 +386,42 @@ public class MainActivity extends Activity {
 		new Thread(new RunnableMockLocation()).start();
 	}
 
+	public void AutoRuning() {
+		double checkXposition = 0.0;
+		double checkYposition = 0.0;
+		
+		if (dirFromStartToEnd == true) {
+			checkYposition = mEndYpos;
+			checkXposition = mEndXpos;
+		} else {
+			checkYposition = mStartYpos;
+			checkXposition = mStartXpos;
+		}
+		
+		if (GlobalValue.compareDouble(mYpos, checkYposition, stepLength*2) &&
+			GlobalValue.compareDouble(mXpos, checkXposition, stepLength*2)) {
+			Toast.makeText(getApplicationContext(),
+					"到达"+(dirFromStartToEnd?"终点":"起点")+"，开始转向",
+					Toast.LENGTH_SHORT).show();
+			Log.d(TAG, "到达"+(dirFromStartToEnd?"终点":"起点")+"，开始转向");
+			dirFromStartToEnd = !dirFromStartToEnd;
+		}
+		Log.d(TAG, "dirFromStartToEnd = "+dirFromStartToEnd);
+		if (dirFromStartToEnd == true) {
+			CalculteNewPosition(mStartXpos, mStartYpos, mEndXpos, mEndYpos);
+		} else {
+			CalculteNewPosition(mEndXpos, mEndYpos, mStartXpos, mStartYpos);
+		}
+	}
+	
+	private boolean ApplyRuning(){
+		if (walkTick >= 20) {
+			walkTick = 0;
+			return true;
+		}
+		return false;
+	}
+	
 	private class RunnableMockLocation implements Runnable {
 
 		@SuppressLint("NewApi")
@@ -329,9 +430,10 @@ public class MainActivity extends Activity {
 			while (true) {
 				try {
 					Thread.sleep(50);
-
-					// if (isStart == false)
-					// break;
+					walkTick++;
+					if (isAutoRun == true) {
+						AutoRuning();
+					}
 					updateLocation();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
@@ -340,8 +442,8 @@ public class MainActivity extends Activity {
 				}
 			}
 		}
-	}
-
+	}	
+	
 	/**
 	 * 停止模拟位置，以免启用模拟数据后无法还原使用系统位置 若模拟位置未开启，则removeTestProvider将会抛出异常；
 	 * 若已addTestProvider后，关闭模拟位置，未removeTestProvider将导致系统GPS无数据更新；
@@ -354,6 +456,29 @@ public class MainActivity extends Activity {
 		}
 	}
 
+	private void CalculteNewPosition(double startX, double startY, double endX, double endY){
+		if (ApplyRuning() == false) {
+			return;
+		}
+		mCurPosition.setText("当前经度:" + mXpos + ",维度:" + mYpos);
+		double dy = startY - endY;
+		double dx = startX - endX;
+		if (GlobalValue.compareDouble(startY, endY, 0.0001) ||
+			GlobalValue.compareDouble(startX, endX, 0.0001)) {
+			dy = startY*10000000 - endY*10000000;
+			dx = startX*10000000 - endX*10000000;
+		}
+		double length = Math.sqrt(dx * dx + dy * dy);
+		//mStepTxt.setText("dy:" + dy + ",dx:" + dx + ",length:" + length);
+		double dLocalY = -stepLength / length * dy;
+		double dLocalX = stepLength / length * dx;
+		//mStepTxt.setText("dLocalY:" + dLocalY + ",dLocalX:" + dLocalX);
+		curBearing = Math.toDegrees(Math.atan(dLocalY / dLocalX));
+		//mStepTxt.setText("curBearing:" + curBearing);
+		mYpos += dLocalY;
+		mXpos += dLocalX;
+	}
+	
 	private void createFloatView() {
 		wmParams = new WindowManager.LayoutParams();
 		// 获取WindowManagerImpl.CompatModeWrapper
@@ -408,37 +533,17 @@ public class MainActivity extends Activity {
 				Log.i(TAG, "onTouch");
 				switch (event.getActionMasked()) {
 				case MotionEvent.ACTION_UP:
-					isStart = false;
 					//mFloatLayout.setBackgroundColor(0xFF000000);
 					mFloatLayout.setVisibility(View.VISIBLE);
 					break;
 				case MotionEvent.ACTION_MOVE:
-					double dy = event.getRawY() - GlobalValue.sWinH / 2;
-					double dx = event.getRawX() - GlobalValue.sWinW / 2;
-					double length = Math.sqrt(dx * dx + dy * dy);
-
-					double dLocalY = -stepLength / length * dy;
-					double dLocalX = stepLength / length * dx;
-
-					curBearing = Math.toDegrees(Math.atan(-dLocalX / dLocalY));
-
-					mLatitude += dLocalY;
-					mLongitude += dLocalX;
-
-					Log.i(TAG, "event.getRawY()=" + event.getRawY()
-							+ ",event.getRawX()=" + event.getRawX()
-							+ ",GlobalValue.sWinH / 2=" + GlobalValue.sWinH / 2
-							+ ",GlobalValue.sWinW / 2=" + GlobalValue.sWinW / 2
-							+ ",length=" + length + ",mLatitude=" + mLatitude
-							+ ",mLongitude" + mLongitude + ",dLocalY="
-							+ dLocalY + ",dLocalX=" + dLocalX + ",curBearing"
-							+ curBearing);
-
+					CalculteNewPosition(event.getRawX(), event.getRawY(),
+						GlobalValue.sWinW / 2, GlobalValue.sWinH / 2);
 					break;
 				case MotionEvent.ACTION_DOWN:
-					isStart = true;
 					//mFloatLayout.setBackgroundColor(0xFFFFFFFF);
 					mFloatLayout.setVisibility(View.INVISIBLE);
+					walkTick = 20;// 开始时添加令牌放呆
 					break;
 				default:
 					break;
@@ -464,8 +569,8 @@ public class MainActivity extends Activity {
 			// 模拟位置（addTestProvider成功的前提下）
 			String providerStr = LocationManager.GPS_PROVIDER;
 			Location mockLocation = new Location(providerStr);
-			mockLocation.setLatitude(mLatitude); // 维度（度）
-			mockLocation.setLongitude(mLongitude); // 经度（度）
+			mockLocation.setLatitude(mYpos); // 维度（度）
+			mockLocation.setLongitude(mXpos); // 经度（度）
 			mockLocation.setAltitude(30); // 高程（米）
 			mockLocation.setBearing((float) curBearing); // 方向（度）
 			mockLocation.setSpeed(5); // 速度（米/秒）
@@ -518,10 +623,10 @@ public class MainActivity extends Activity {
 			Log.d(TAG, "名称重复");
 			return;
 		}
-		editor.putFloat(name + "Lo", (float) mLongitude);
-		editor.putFloat(name + "La", (float) mLatitude);
+		editor.putFloat(name + "Lo", (float) mXpos);
+		editor.putFloat(name + "La", (float) mYpos);
 		dataNameList.add(name);
-		Log.d(TAG, "storeCurLocat,name:"+name+",mLongitude:"+mLongitude+",mLatitude"+mLatitude);
+		Log.d(TAG, "storeCurLocat,name:"+name+",mXpos:"+mXpos+",mYpos"+mYpos);
 		editor.commit();
 	}
 	
@@ -529,8 +634,8 @@ public class MainActivity extends Activity {
 		if (!dataNameList.contains("lastLocation")) {
 			dataNameList.add("lastLocation");
 		}
-		editor.putFloat("lastLocationLo", (float) mLongitude);
-		editor.putFloat("lastLocationLa", (float) mLatitude);
+		editor.putFloat("lastLocationLo", (float) mXpos);
+		editor.putFloat("lastLocationLa", (float) mYpos);
 		editor.commit();
 	}
 }

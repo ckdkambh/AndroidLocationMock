@@ -92,23 +92,50 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="关闭浮动窗" />
-
-    <Button
-        android:id="@+id/btn_id_set_start_point"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="设置当前位置为起点" />
-    
-    <Button
-        android:id="@+id/btn_id_set_end_point"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="设置当前位置为终点" />
-    
-    <Button
-        android:id="@+id/btn_id_start_auto_walk"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="开始自动散步" />
-
+	<ScrollView
+	        android:id="@+id/scrollView1"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content" >
+        
+        <LinearLayout
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content"
+	        android:orientation="vertical" >
+	    <Button
+	        android:id="@+id/btn_id_set_start_point"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="设置当前位置为起点" />
+	    
+	    <TextView
+	        android:id="@+id/txt_id_start_position"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="" />
+	    
+	    <Button
+	        android:id="@+id/btn_id_set_end_point"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="设置当前位置为终点" />
+	    
+	    <TextView
+	        android:id="@+id/txt_id_end_position"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="" />
+	    
+	    <Button
+	        android:id="@+id/btn_id_start_auto_walk"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="开启自动行走" />
+	
+	    <TextView
+	        android:id="@+id/txt_id_cur_position"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="" />
+	    </LinearLayout>
+	</ScrollView>
 </LinearLayout>
