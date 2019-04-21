@@ -558,7 +558,7 @@ public class MainActivity extends Activity {
 					CalculteNewPosition(event.getRawX(), event.getRawY(),
 						GlobalValue.sWinW / 2, GlobalValue.sWinH / 2);
 
-					mStepTxt.setText("count1:" + count1);
+					//mStepTxt.setText("count1:" + count1);
 					break;
 				case MotionEvent.ACTION_DOWN:
 					//mFloatLayout.setBackgroundColor(0xFFFFFFFF);
