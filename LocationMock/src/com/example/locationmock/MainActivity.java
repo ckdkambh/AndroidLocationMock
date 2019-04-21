@@ -77,8 +77,9 @@ public class MainActivity extends Activity {
 	private List<String> dataNameList = new ArrayList<String>();
 	private SharedPreferences preferences;
 	private Editor editor;
-	private boolean isAutoRun = false;
-	private int walkTick = 0;//移位许可，因为定时器过快，不能每个周期都进行位移
+	private static boolean isAutoRun = false;
+	private static int walkTick = 0;//移位许可，因为定时器过快，不能每个周期都进行位移
+	private static int count1 = 0;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -317,6 +318,7 @@ public class MainActivity extends Activity {
 							"请正确设置起点位置",
 							Toast.LENGTH_SHORT).show();
 					isAutoRun = false;
+					dirFromStartToEnd = false;
 					return;
 				}
 				
@@ -325,6 +327,7 @@ public class MainActivity extends Activity {
 							"请正确设置终点位置",
 							Toast.LENGTH_SHORT).show();
 					isAutoRun = false;
+					dirFromStartToEnd = false;
 					return;
 				}
 				
@@ -334,15 +337,17 @@ public class MainActivity extends Activity {
 							"起点终点太近请重新设置",
 							Toast.LENGTH_SHORT).show();
 					isAutoRun = false;
+					dirFromStartToEnd = false;
 					return;
 				}
 				
 				if (isAutoRun == false) {
 					isAutoRun = true;
-					walkTick = 20;// 开始时添加令牌放呆
+					walkTick = 0;// 防止闪屏
 					mStartAutoWalkBtn.setText("关闭自动行走");
 				} else {
 					isAutoRun = false;
+					dirFromStartToEnd = false;
 					mStartAutoWalkBtn.setText("开启自动行走");
 				}			
 				
@@ -386,7 +391,7 @@ public class MainActivity extends Activity {
 		new Thread(new RunnableMockLocation()).start();
 	}
 
-	public void AutoRuning() {
+	private void AutoRuning() {
 		double checkXposition = 0.0;
 		double checkYposition = 0.0;
 		
@@ -400,17 +405,12 @@ public class MainActivity extends Activity {
 		
 		if (GlobalValue.compareDouble(mYpos, checkYposition, stepLength*2) &&
 			GlobalValue.compareDouble(mXpos, checkXposition, stepLength*2)) {
-			Toast.makeText(getApplicationContext(),
-					"到达"+(dirFromStartToEnd?"终点":"起点")+"，开始转向",
-					Toast.LENGTH_SHORT).show();
-			Log.d(TAG, "到达"+(dirFromStartToEnd?"终点":"起点")+"，开始转向");
 			dirFromStartToEnd = !dirFromStartToEnd;
 		}
-		Log.d(TAG, "dirFromStartToEnd = "+dirFromStartToEnd);
 		if (dirFromStartToEnd == true) {
-			CalculteNewPosition(mStartXpos, mStartYpos, mEndXpos, mEndYpos);
+			CalculteNewPositionNonCover(mEndXpos, mEndYpos, mStartXpos, mStartYpos);
 		} else {
-			CalculteNewPosition(mEndXpos, mEndYpos, mStartXpos, mStartYpos);
+			CalculteNewPositionNonCover(mStartXpos, mStartYpos, mEndXpos, mEndYpos);
 		}
 	}
 	
@@ -457,10 +457,11 @@ public class MainActivity extends Activity {
 	}
 
 	private void CalculteNewPosition(double startX, double startY, double endX, double endY){
+		count1++;
 		if (ApplyRuning() == false) {
 			return;
 		}
-		mCurPosition.setText("当前经度:" + mXpos + ",维度:" + mYpos);
+		//mCurPosition.setText("当前经度:" + mXpos + ",维度:" + mYpos);
 		double dy = startY - endY;
 		double dx = startX - endX;
 		if (GlobalValue.compareDouble(startY, endY, 0.0001) ||
@@ -469,16 +470,33 @@ public class MainActivity extends Activity {
 			dx = startX*10000000 - endX*10000000;
 		}
 		double length = Math.sqrt(dx * dx + dy * dy);
-		//mStepTxt.setText("dy:" + dy + ",dx:" + dx + ",length:" + length);
 		double dLocalY = -stepLength / length * dy;
 		double dLocalX = stepLength / length * dx;
-		//mStepTxt.setText("dLocalY:" + dLocalY + ",dLocalX:" + dLocalX);
 		curBearing = Math.toDegrees(Math.atan(dLocalY / dLocalX));
-		//mStepTxt.setText("curBearing:" + curBearing);
 		mYpos += dLocalY;
 		mXpos += dLocalX;
 	}
-	
+	// 不转换坐标系
+	private void CalculteNewPositionNonCover(double startX, double startY, double endX, double endY){
+		count1++;
+		if (ApplyRuning() == false) {
+			return;
+		}
+		//mCurPosition.setText("当前经度:" + mXpos + ",维度:" + mYpos);
+		double dy = startY - endY;
+		double dx = startX - endX;
+		if (GlobalValue.compareDouble(startY, endY, 0.0001) ||
+			GlobalValue.compareDouble(startX, endX, 0.0001)) {
+			dy = startY*1000000000 - endY*1000000000;
+			dx = startX*1000000000 - endX*1000000000;
+		}
+		double length = Math.sqrt(dx * dx + dy * dy);
+		double dLocalY = dy / length * stepLength;
+		double dLocalX = dx / length * stepLength;
+		curBearing = Math.toDegrees(Math.atan(dLocalY / dLocalX));
+		mYpos += dLocalY;
+		mXpos += dLocalX;
+	}
 	private void createFloatView() {
 		wmParams = new WindowManager.LayoutParams();
 		// 获取WindowManagerImpl.CompatModeWrapper
@@ -539,11 +557,13 @@ public class MainActivity extends Activity {
 				case MotionEvent.ACTION_MOVE:
 					CalculteNewPosition(event.getRawX(), event.getRawY(),
 						GlobalValue.sWinW / 2, GlobalValue.sWinH / 2);
+
+					mStepTxt.setText("count1:" + count1);
 					break;
 				case MotionEvent.ACTION_DOWN:
 					//mFloatLayout.setBackgroundColor(0xFFFFFFFF);
 					mFloatLayout.setVisibility(View.INVISIBLE);
-					walkTick = 20;// 开始时添加令牌放呆
+					walkTick = 0;// 防止闪屏
 					break;
 				default:
 					break;
