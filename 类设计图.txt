@@ -1,0 +1,16 @@
+@startuml
+PositonCtrlFlowViewHandler <|-- FlowViewInf
+
+PositonCtrlFlowView *-- PositonCtrlFlowViewHandler
+PositonCtrlFlowView *-- PositonCalculte
+
+MainActivity *-- PositonCtrlFlowView
+MainActivity *-- PositionSaver
+MainActivity *-- DiagLog
+
+FlowViewInf : OnTouch()
+
+
+
+
+@enduml

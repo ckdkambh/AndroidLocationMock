@@ -106,6 +106,11 @@ public class MainActivity extends Activity {
 		mSetEndPointBtn = (Button) findViewById(R.id.btn_id_set_end_point);
 		mStartAutoWalkBtn = (Button) findViewById(R.id.btn_id_start_auto_walk);
 		
+		mSetBtn.setFocusable(true);
+		mSetBtn.setFocusableInTouchMode(true);
+		mSetBtn.requestFocus();
+		mSetBtn.requestFocusFromTouch();
+		
 		preferences = this.getSharedPreferences("t1", Context.MODE_PRIVATE);
 		editor = preferences.edit();
 		readNameList();
@@ -270,6 +275,7 @@ public class MainActivity extends Activity {
 										mXpos = preferences.getFloat(strList[which]+"Lo", 0);
 										mYpos = preferences.getFloat(strList[which]+"La", 0);
 										Log.d(TAG, "mXpos:"+mXpos+"mYpos:"+mYpos);
+										dialog.dismiss();
 									}
 								})
 						.setNegativeButton("取消",
@@ -415,7 +421,7 @@ public class MainActivity extends Activity {
 	}
 	
 	private boolean ApplyRuning(){
-		if (walkTick >= 20) {
+		if (walkTick >= 1) {
 			walkTick = 0;
 			return true;
 		}
@@ -429,11 +435,12 @@ public class MainActivity extends Activity {
 		public void run() {
 			while (true) {
 				try {
-					Thread.sleep(50);
+					Thread.sleep(1000);
 					walkTick++;
 					if (isAutoRun == true) {
 						AutoRuning();
 					}
+					storeLastLocat();
 					updateLocation();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
@@ -469,12 +476,17 @@ public class MainActivity extends Activity {
 			dy = startY*10000000 - endY*10000000;
 			dx = startX*10000000 - endX*10000000;
 		}
-		double length = Math.sqrt(dx * dx + dy * dy);
-		double dLocalY = -stepLength / length * dy;
-		double dLocalX = stepLength / length * dx;
-		curBearing = Math.toDegrees(Math.atan(dLocalY / dLocalX));
-		mYpos += dLocalY;
-		mXpos += dLocalX;
+		try {
+			double length = Math.sqrt(dx * dx + dy * dy);
+			double dLocalY = -stepLength / length * dy;
+			double dLocalX = stepLength / length * dx;
+			curBearing = Math.toDegrees(Math.atan(dLocalY / dLocalX));
+			mYpos += dLocalY;
+			mXpos += dLocalX;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	// 不转换坐标系
 	private void CalculteNewPositionNonCover(double startX, double startY, double endX, double endY){
@@ -490,12 +502,17 @@ public class MainActivity extends Activity {
 			dy = startY*1000000000 - endY*1000000000;
 			dx = startX*1000000000 - endX*1000000000;
 		}
-		double length = Math.sqrt(dx * dx + dy * dy);
-		double dLocalY = dy / length * stepLength;
-		double dLocalX = dx / length * stepLength;
-		curBearing = Math.toDegrees(Math.atan(dLocalY / dLocalX));
-		mYpos += dLocalY;
-		mXpos += dLocalX;
+		try {
+			double length = Math.sqrt(dx * dx + dy * dy);
+			double dLocalY = dy / length * stepLength;
+			double dLocalX = dx / length * stepLength;
+			curBearing = Math.toDegrees(Math.atan(dLocalY / dLocalX));
+			mYpos += dLocalY;
+			mXpos += dLocalX;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	private void createFloatView() {
 		wmParams = new WindowManager.LayoutParams();
